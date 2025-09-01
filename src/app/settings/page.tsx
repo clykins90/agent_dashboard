@@ -1,24 +1,16 @@
 import { getAgentConfig, setAgentConfig } from "@/lib/store";
 import SettingsForm from "./settings/SettingsForm";
 import { revalidatePath } from "next/cache";
-import { gateway, createGateway } from "@ai-sdk/gateway";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const config = await getAgentConfig();
-  let modelOptions: string[] = [];
-  try {
-    const gw = process.env.AI_GATEWAY_API_KEY
-      ? createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY })
-      : gateway;
-    const { models } = await gw.getAvailableModels();
-    modelOptions = models
-      .filter((m) => m.modelType === "language")
-      .map((m) => m.id);
-  } catch {
-    modelOptions = ["openai/gpt-4o", "openai/gpt-4o-mini"];
-  }
+  const modelOptions: string[] = [
+    "gpt-5o",
+    "gpt-5.1",
+    "gpt-5-mini",
+  ];
 
   async function save(formData: FormData) {
     "use server";

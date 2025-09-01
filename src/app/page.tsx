@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
     <div className="font-sans min-h-screen p-8 pb-20 sm:p-20 bg-white text-gray-900">
@@ -23,6 +21,12 @@ export default function Home() {
             href="/chat"
           >
             Try the Agent
+          </a>
+          <a
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 text-sm sm:text-base h-11 px-5"
+            href="/voice"
+          >
+            Voice Agent
           </a>
           <a
             className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 text-sm sm:text-base h-11 px-5"

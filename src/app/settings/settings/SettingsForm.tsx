@@ -55,12 +55,12 @@ export default function SettingsForm({ initialConfig, save, modelOptions }: { in
 
       <label className="flex flex-col gap-2">
         <span className="text-sm">Model
-          <span className="ml-2 text-xs text-gray-500" title="Choose an LLM. With AI Gateway, models are namespaced like provider/model (e.g., openai/gpt-4o).">(?)</span>
+          <span className="ml-2 text-xs text-gray-500" title="Choose an LLM.">(?)</span>
         </span>
         <select
           className="border rounded px-3 py-2"
           name="model"
-          value={agentConfig.model.includes('/') ? agentConfig.model : `openai/${agentConfig.model}`}
+          value={agentConfig.model}
           onChange={(e) => setAgentConfigState((current) => ({ ...current, model: e.target.value }))}
         >
           {modelOptions.map((id) => (

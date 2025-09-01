@@ -20,38 +20,18 @@ export default function ChatPage() {
 
     const response = await fetch(`/api/chat${debugEnabled ? "?debug=1" : ""}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: nextMessages }),
     });
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      setIsLoading(false);
-      return;
-    }
-    streamRef.current = reader;
-
-    const decoder = new TextDecoder();
-    let assistantResponse = "";
-    while (true) {
-      const { done, value: chunkValue } = await reader.read();
-      if (done) break;
-      const decodedChunk = decoder.decode(chunkValue);
-      assistantResponse += decodedChunk;
-      setMessages((previousMessages) => {
-        const lastMessage = previousMessages[previousMessages.length - 1];
-        const previousExceptLast = previousMessages.slice(0, -1);
-        if (lastMessage?.role === "assistant") {
-          return [...previousExceptLast, { role: "assistant", content: assistantResponse } as ChatMessage];
-        }
-        return [...previousMessages, { role: "assistant", content: assistantResponse } as ChatMessage];
-      });
-    }
+    const data = await response.json();
+    setMessages((previousMessages) => [...previousMessages, { role: "assistant", content: data.text } as ChatMessage]);
     setIsLoading(false);
   }
 
   useEffect(() => {
+    const readerAtMount = streamRef.current;
     return () => {
-      streamRef.current?.cancel().catch(() => {});
+      readerAtMount?.cancel().catch(() => {});
     };
   }, []);
 
