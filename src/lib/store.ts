@@ -1,8 +1,14 @@
 import { promises as fs } from "fs";
 import path from "path";
+import os from "os";
 import { AgentConfig, Transcript, ChatMessage } from "./types";
 
-const DATA_DIRECTORY = path.join(process.cwd(), "data");
+const baseDataDirectory = process.env.DATA_DIR
+  ? process.env.DATA_DIR
+  : process.env.VERCEL
+  ? os.tmpdir()
+  : path.join(process.cwd(), "data");
+const DATA_DIRECTORY = path.join(baseDataDirectory, "agent_dashboard");
 const AGENT_CONFIG_FILE = path.join(DATA_DIRECTORY, "agentConfig.json");
 const TRANSCRIPTS_FILE = path.join(DATA_DIRECTORY, "transcripts.json");
 
@@ -30,7 +36,8 @@ async function writeJsonFile<T>(filePath: string, data: T): Promise<void> {
 }
 
 const defaultAgentConfig: AgentConfig = {
-  systemPrompt: "You are a helpful assistant. Be concise.",
+  systemPrompt:
+    "You are a helpful assistant. When tools are used, ALWAYS summarize the relevant results clearly for the user. Include dates/times and key fields. If the tool returns a list, extract the top items with times and names.",
   model: "gpt-4o-mini",
   tools: [],
 };

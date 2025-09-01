@@ -6,6 +6,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [debugEnabled, setDebugEnabled] = useState(false);
   const streamRef = useRef<ReadableStreamDefaultReader | null>(null);
 
   const uiMessages = useMemo(() => messages, [messages]);
@@ -17,7 +18,7 @@ export default function ChatPage() {
     setUserInput("");
     setIsLoading(true);
 
-    const response = await fetch("/api/chat", {
+    const response = await fetch(`/api/chat${debugEnabled ? "?debug=1" : ""}`, {
       method: "POST",
       body: JSON.stringify({ messages: nextMessages }),
     });
@@ -66,6 +67,10 @@ export default function ChatPage() {
         ))}
         {isLoading && <div className="text-sm text-gray-500">Thinking…</div>}
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={debugEnabled} onChange={(e) => setDebugEnabled(e.target.checked)} />
+        Enable debug logging (server)
+      </label>
       <div className="flex gap-2">
         <input
           className="border rounded px-3 py-2 flex-1"

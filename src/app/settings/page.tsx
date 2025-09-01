@@ -61,7 +61,7 @@ export default function SettingsPage() {
           className="border rounded px-3 py-2"
           value={agentConfig.model}
           onChange={(e) => setAgentConfigState((current) => ({ ...current, model: e.target.value }))}
-          placeholder="gpt-4o or gpt-4o-mini"
+          placeholder="openai/gpt-4o (with Gateway) or gpt-4o (direct)"
         />
       </label>
 

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+export const runtime = "nodejs";
 import { getAgentConfig, setAgentConfig } from "@/lib/store";
 import { AgentConfig } from "@/lib/types";
 

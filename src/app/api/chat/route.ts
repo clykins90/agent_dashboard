@@ -1,11 +1,13 @@
 import { NextRequest } from "next/server";
 import { z as zod } from "zod";
-import { streamText, type CoreMessage, type Tool, type ToolSet } from "ai";
+import { streamText, type Tool, type ToolSet, stepCountIs } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { gateway, createGateway } from "@ai-sdk/gateway";
 import { getAgentConfig, saveTranscript } from "@/lib/store";
 import { ChatMessage, Transcript } from "@/lib/types";
 
 export const maxDuration = 30;
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const requestBody = await req.json();
@@ -42,22 +44,34 @@ export async function POST(req: NextRequest) {
     ? [{ role: "system" as const, content: agentConfig.systemPrompt }]
     : [];
 
-  const toCoreMessage = (message: ChatMessage): CoreMessage | null => {
+  type ModelMessage = { role: "system" | "user" | "assistant"; content: string };
+
+  const toModelMessage = (message: ChatMessage): ModelMessage | null => {
     if (message.role === "system" || message.role === "user" || message.role === "assistant") {
-      return { role: message.role, content: message.content } as CoreMessage;
+      return { role: message.role, content: message.content };
     }
     return null;
   };
 
-  const coreMessages: CoreMessage[] = [
+  const modelMessages: ModelMessage[] = [
     ...systemContent,
-    ...incomingMessages.map(toCoreMessage).filter(Boolean) as CoreMessage[],
+    ...incomingMessages.map(toModelMessage).filter(Boolean) as ModelMessage[],
   ];
 
+  // Prefer AI Gateway if key is present; support plain model ids (e.g., "gpt-4o") by prefixing "openai/"
+  const hasGatewayKey = Boolean(process.env.AI_GATEWAY_API_KEY);
+  const gatewayInstance = hasGatewayKey
+    ? createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY })
+    : null;
+  const modelId = agentConfig.model.includes("/") ? agentConfig.model : `openai/${agentConfig.model}`;
+
   const result = streamText({
-    model: openai(agentConfig.model),
+    model: hasGatewayKey
+      ? (gatewayInstance ?? gateway)(modelId)
+      : openai(agentConfig.model),
     tools,
-    messages: coreMessages,
+    messages: modelMessages,
+    stopWhen: stepCountIs(2),
   });
 
   // Persist transcript start
