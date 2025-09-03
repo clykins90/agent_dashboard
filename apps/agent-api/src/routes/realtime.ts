@@ -1,37 +1,51 @@
-import { FastifyInstance } from 'fastify';
-import { OPENAI_API_KEY, REALTIME_MODEL, DEFAULT_VOICE } from '../config';
+import { FastifyInstance } from "fastify";
+import { mintRealtimeSession } from "../services/realtimeService";
+import { AUTH_TOKEN, TOKEN_RATE_LIMIT_MAX, TOKEN_RATE_LIMIT_WINDOW_MS } from "../config";
+
+type IpRecord = { count: number; windowStart: number };
+const ipCounters: Map<string, IpRecord> = new Map();
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = ipCounters.get(ip);
+  if (!record) {
+    ipCounters.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  if (now - record.windowStart > TOKEN_RATE_LIMIT_WINDOW_MS) {
+    ipCounters.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  record.count += 1;
+  return record.count > TOKEN_RATE_LIMIT_MAX;
+}
 
 export async function registerRealtimeRoutes(app: FastifyInstance) {
-  app.get('/realtime/token', async (_req, reply) => {
-    if (!OPENAI_API_KEY) {
-      reply.code(500).send({ error: 'Missing OPENAI_API_KEY' });
+  app.get("/realtime/token", async (req, reply) => {
+    // Simple bearer token auth (or skip if AUTH_TOKEN not set)
+    if (AUTH_TOKEN) {
+      const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+      const token = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length)
+        : null;
+      if (!token || token !== AUTH_TOKEN) {
+        reply.code(401).send({ error: "Unauthorized" });
+        return;
+      }
+    }
+
+    // Per-IP rate limiting
+    const ip = (req.ip || req.socket.remoteAddress || "unknown").toString();
+    if (isRateLimited(ip)) {
+      reply.code(429).send({ error: "Too Many Requests" });
       return;
     }
+
     try {
-      const resp = await fetch('https://api.openai.com/v1/realtime/sessions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ model: REALTIME_MODEL, ...(DEFAULT_VOICE ? { voice: DEFAULT_VOICE } : {}) }),
-      });
-      if (!resp.ok) {
-        app.log.error({ status: resp.status }, 'Failed to mint realtime session');
-        reply.code(500).send({ error: 'Failed to mint token' });
-        return;
-      }
-      const json = await resp.json();
-      const token = (json?.client_secret?.value ?? '') as string;
-      const expiresAt = json?.client_secret?.expires_at as number | undefined;
-      if (!token) {
-        reply.code(500).send({ error: 'No token in response' });
-        return;
-      }
+      const { token, expiresAt } = await mintRealtimeSession();
       reply.send({ token, expiresAt });
     } catch (err) {
-      app.log.error({ err }, 'Error minting token');
-      reply.code(500).send({ error: 'Server error' });
+      app.log.error({ err }, "Error minting token");
+      reply.code(500).send({ error: "Server error" });
     }
   });
 }

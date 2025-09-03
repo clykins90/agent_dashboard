@@ -1,0 +1,36 @@
+{
+  "name": "agent-api",
+  "root": "apps/agent-api",
+  "sourceRoot": "apps/agent-api/src",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx src/server.ts",
+        "cwd": "apps/agent-api"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p tsconfig.json",
+        "cwd": "apps/agent-api"
+      },
+      "outputs": [
+        "apps/agent-api/dist"
+      ]
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/server.js",
+        "cwd": "apps/agent-api"
+      },
+      "dependsOn": [
+        "build"
+      ]
+    }
+  }
+}
+
+
