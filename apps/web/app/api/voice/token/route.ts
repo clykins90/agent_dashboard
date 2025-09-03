@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
     }
     const tokenUrl = `${agentApiBaseUrl.replace(/\/$/, '')}/realtime/token`;
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
-    const authHeader = req.headers.get('authorization');
-    if (authHeader) headers['Authorization'] = authHeader;
+    const serverAuth = process.env.AGENT_API_AUTH_TOKEN;
+    if (serverAuth) headers['Authorization'] = `Bearer ${serverAuth}`;
 
     const response = await fetch(tokenUrl, { method: 'GET', headers });
     if (!response.ok) {

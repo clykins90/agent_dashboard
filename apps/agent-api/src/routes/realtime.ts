@@ -44,8 +44,10 @@ export async function registerRealtimeRoutes(app: FastifyInstance) {
       const { token, expiresAt } = await mintRealtimeSession();
       reply.send({ token, expiresAt });
     } catch (err) {
-      app.log.error({ err }, "Error minting token");
-      reply.code(500).send({ error: "Server error" });
+      const message = err instanceof Error ? err.message : String(err);
+      app.log.error({ err: message }, "Error minting token");
+      const isProd = process.env.NODE_ENV === 'production';
+      reply.code(500).send({ error: isProd ? 'Server error' : message });
     }
   });
 }

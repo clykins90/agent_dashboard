@@ -13,18 +13,17 @@ export default function VoicePage() {
       name: "Voice Assistant",
       instructions: "You are a helpful assistant.",
     });
-    const session = new RealtimeSession(agent);
+    const session = new RealtimeSession(agent, { model: "gpt-realtime" });
     sessionRef.current = session;
     await session.connect({
       apiKey: async () => {
         const base = process.env.NEXT_PUBLIC_AGENT_API_URL || "";
-        const url = base ? `${base.replace(/\/$/, '')}/realtime/token` : "/api/voice/token";
+        const url = base ? `${base.replace(/\/$/, '')}x/realtime/token` : "/api/voice/token";
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to get token");
         const data = await res.json().catch(() => null);
         return (data?.token as string) || (await res.text());
       },
-      model: "gpt-realtime",
     });
     setConnected(true);
     setStatus("Connected");

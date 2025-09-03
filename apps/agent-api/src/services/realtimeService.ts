@@ -1,4 +1,4 @@
-import { OPENAI_API_KEY, REALTIME_MODEL, DEFAULT_VOICE } from "../config";
+import { OPENAI_API_KEY, REALTIME_MODEL } from "../config";
 
 type RealtimeSessionJson = {
   client_secret?: {
@@ -8,28 +8,31 @@ type RealtimeSessionJson = {
 };
 
 export async function mintRealtimeSession() {
-  const resp = await fetch("https://api.openai.com/v1/realtime/sessions", {
+  const resp = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: REALTIME_MODEL,
-      ...(DEFAULT_VOICE ? { voice: DEFAULT_VOICE } : {}),
+      session: {
+        type: "realtime",
+        model: REALTIME_MODEL,
+      },
     }),
   });
 
   if (!resp.ok) {
-    throw new Error(`Failed to mint realtime session: ${resp.status}`);
+    const text = await resp.text().catch(() => "");
+    throw new Error(`Failed to mint realtime session: ${resp.status} ${text}`);
   }
 
-  const json = (await resp.json()) as RealtimeSessionJson;
-  const token = json.client_secret?.value as string;
-  const expiresAt = json.client_secret?.expires_at as number | undefined;
+  const json = (await resp.json()) as RealtimeSessionJson & { value?: string; expires_at?: number };
+  const token = (json.client_secret?.value || json.value) as string | undefined;
+  const expiresAt = (json.client_secret?.expires_at ?? json.expires_at) as number | undefined;
 
   if (!token) {
-    throw new Error("No token in response");
+    throw new Error(`No token in response: ${JSON.stringify(json)}`);
   }
 
   return { token, expiresAt };
