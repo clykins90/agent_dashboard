@@ -6,55 +6,12 @@ on:
   pull_request:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Typecheck (web)
-        run: npm run typecheck
-
-      - name: Lint (web)
-        run: npm run lint
-
-      - name: Test (web)
-        run: npm run test
-
-      - name: Build web
-        run: npm run build
-
-      - name: Build API
-        run: npm run api:build
-
-name: CI
-
-on:
-  pull_request:
-    branches: [ main ]
-  push:
-    branches: [ main ]
-
-concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Lint, Typecheck, Build
+    name: Lint, Typecheck, Test, Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -77,17 +34,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nx-
 
-      - name: Lint
-        run: npx nx run agent_dashboard:eslint:lint
+      - name: Typecheck (web)
+        run: npm run typecheck
 
-      - name: Typecheck
-        run: npx nx run agent_dashboard:vite:typecheck
+      - name: Lint (web)
+        run: npm run lint
 
-      - name: Test
-        run: npx nx run agent_dashboard:vite:test
+      - name: Test (web)
+        run: npm run test
 
-      - name: Build
-        run: npx nx run agent_dashboard:next:build
+      - name: Build web
+        run: npm run build
+
+      - name: Build API
+        run: npm run api:build
 
   deploy-preview:
     name: Deploy Preview (Vercel)
@@ -124,7 +84,7 @@ jobs:
         run: npx vercel pull --yes --environment=preview --token=${{ env.VERCEL_TOKEN }}
 
       - name: Build (prebuilt)
-        run: npx nx run agent_dashboard:next:build
+        run: npx nx run web:next:build
 
       - name: Deploy to Vercel (Preview)
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
@@ -165,7 +125,7 @@ jobs:
         run: npx vercel pull --yes --environment=production --token=${{ env.VERCEL_TOKEN }}
 
       - name: Build (prebuilt)
-        run: npx nx run agent_dashboard:next:build
+        run: npx nx run web:next:build
 
       - name: Deploy to Vercel (Production)
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}

@@ -16,6 +16,7 @@
   "dependencies": {
     "@agent-dashboard/shared": "file:packages/shared",
     "@fastify/cors": "^11.1.0",
+    "@fastify/formbody": "^8.0.2",
     "@fastify/websocket": "^11.2.0",
     "@openai/agents": "^0.1.0",
     "@openai/agents-openai": "^0.1.0",

@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import formbody from '@fastify/formbody';
 import websocket from '@fastify/websocket';
 import { PORT, isOriginAllowed } from './config';
 import { registerHealthRoutes } from './routes/health';
@@ -16,6 +17,9 @@ async function bootstrap() {
     },
   });
 
+  // Accept application/x-www-form-urlencoded (Twilio default webhook content-type)
+  await app.register(formbody);
+
   await app.register(websocket);
 
   await registerHealthRoutes(app);
@@ -23,7 +27,7 @@ async function bootstrap() {
   await registerTwilioRoutes(app);
 
   app
-    .listen({ port: PORT, host: '0.0.0.0' })
+    .listen({ port: PORT, host: '::' })
     .then(() => {
       app.log.info(`agent-api listening on :${PORT}`);
     })

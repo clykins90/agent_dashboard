@@ -4,7 +4,6 @@ import { OpenAIRealtimeWebSocket } from '@openai/agents-realtime';
 import { OPENAI_API_KEY, REALTIME_MODEL, DEFAULT_VOICE, PUBLIC_WS_URL } from '../config';
 
 export async function registerTwilioRoutes(app: FastifyInstance) {
-  // Ensure websocket plugin is available to this scope
   if (!(app as any).websocketServer) {
     await app.register(websocket);
   }
