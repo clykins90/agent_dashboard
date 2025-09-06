@@ -47,11 +47,16 @@ export default [
     },
   },
 
-  ...compat.config({
-    extends: ["next/core-web-vitals", "next/typescript"],
-    settings: { next: { rootDir: ["apps/web"] } },
-    files: ["apps/web/**/*.{ts,tsx,js,jsx}"],
-  }),
+  ...compat
+    .config({ extends: ["next/core-web-vitals", "next/typescript"] })
+    .map((cfg) => ({
+      ...cfg,
+      files: ["apps/web/**/*.{ts,tsx,js,jsx}"],
+      settings: {
+        ...(cfg.settings ?? {}),
+        next: { rootDir: ["apps/web"] },
+      },
+    })),
 
   {
     files: ["apps/agent-api/**/*.{ts,tsx,js,jsx}"],

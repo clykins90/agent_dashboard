@@ -23,7 +23,7 @@ export default function VoicePage() {
       }
       return tool({
         name: t.name,
-        description: t.description,
+        description: t.description ?? `Tool: ${t.name}`,
         parameters: zod.object(shape),
         execute: async (args: Record<string, unknown>) => {
           const url = new URL(t.url);
