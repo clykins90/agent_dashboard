@@ -6,7 +6,7 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsx src/server.ts",
+        "command": "tsx watch src/server.ts",
         "cwd": "apps/agent-api"
       }
     },
@@ -29,6 +29,20 @@
       "dependsOn": [
         "build"
       ]
+    },
+    "vite:typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/agent-api/tsconfig.json --noEmit"
+      }
+    },
+    "eslint:lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "apps/agent-api/src/**/*.{ts,tsx,js}"
+        ]
+      }
     }
   }
 }

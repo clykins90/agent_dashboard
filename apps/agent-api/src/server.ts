@@ -26,6 +26,8 @@ async function bootstrap() {
   await registerRealtimeRoutes(app);
   await registerTwilioRoutes(app);
 
+  // Note: We intentionally skip attaching SIGINT/SIGTERM handlers for now.
+
   app
     .listen({ port: PORT, host: '::' })
     .then(() => {
@@ -38,7 +40,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });

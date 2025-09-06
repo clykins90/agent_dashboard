@@ -9,8 +9,10 @@
     "api:dev": "nx run agent-api:dev",
     "api:build": "nx run agent-api:build",
     "api:start": "nx run agent-api:start",
-    "lint": "nx run web:eslint:lint --max-warnings=0",
-    "typecheck": "nx run web:vite:typecheck",
+    "lint": "nx run-many -t eslint:lint --max-warnings=0 --projects=web,agent-api,shared",
+    "typecheck": "nx run-many -t vite:typecheck --projects=web,agent-api,shared",
+    "api:lint": "nx run agent-api:eslint:lint --max-warnings=0",
+    "api:typecheck": "nx run agent-api:vite:typecheck",
     "test": "nx run web:vite:test"
   },
   "dependencies": {

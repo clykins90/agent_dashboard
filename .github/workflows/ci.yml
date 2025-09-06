@@ -29,21 +29,21 @@ jobs:
       - name: Setup Nx cache
         uses: actions/cache@v4
         with:
-          path: ~/.nx/cache
+          path: .nx/cache
           key: ${{ runner.os }}-nx-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nx-
 
-      - name: Typecheck (web)
+      - name: Typecheck (all)
         run: npm run typecheck
 
-      - name: Lint (web)
+      - name: Lint (all)
         run: npm run lint
 
       - name: Test (web)
         run: npm run test
 
-      - name: Build web
+      - name: Build web (Turbopack)
         run: npm run build
 
       - name: Build API
@@ -74,7 +74,7 @@ jobs:
       - name: Setup Nx cache
         uses: actions/cache@v4
         with:
-          path: ~/.nx/cache
+          path: .nx/cache
           key: ${{ runner.os }}-nx-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nx-
@@ -83,8 +83,8 @@ jobs:
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
         run: npx vercel pull --yes --environment=preview --token=${{ env.VERCEL_TOKEN }}
 
-      - name: Build (prebuilt)
-        run: npx nx run web:next:build
+      - name: Build (prebuilt, Turbopack)
+        run: npx nx run web:next:build --turbopack
 
       - name: Deploy to Vercel (Preview)
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
@@ -115,7 +115,7 @@ jobs:
       - name: Setup Nx cache
         uses: actions/cache@v4
         with:
-          path: ~/.nx/cache
+          path: .nx/cache
           key: ${{ runner.os }}-nx-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nx-
@@ -124,8 +124,8 @@ jobs:
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
         run: npx vercel pull --yes --environment=production --token=${{ env.VERCEL_TOKEN }}
 
-      - name: Build (prebuilt)
-        run: npx nx run web:next:build
+      - name: Build (prebuilt, Turbopack)
+        run: npx nx run web:next:build --turbopack
 
       - name: Deploy to Vercel (Production)
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}

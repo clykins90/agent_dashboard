@@ -31,13 +31,16 @@
       }
     },
     "vite:typecheck": {
-      "executor": "@nx/vite:tsc"
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/web/tsconfig.json --noEmit"
+      }
     },
     "eslint:lint": {
       "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": [
-          "apps/web/**/*.{ts,tsx,js}"
+          "apps/web/**/*.{ts,tsx}"
         ]
       }
     }

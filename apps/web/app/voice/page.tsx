@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { RealtimeAgent, RealtimeSession } from "@openai/agents-realtime";
+import { RealtimeAgent, RealtimeSession, tool } from "@openai/agents-realtime";
+import { z as zod } from "zod";
 
 export default function VoicePage() {
   const [connected, setConnected] = useState(false);
@@ -9,22 +10,58 @@ export default function VoicePage() {
 
   async function connect() {
     setStatus("Connecting…");
+    // Load agent config (system prompt, model, tools) from server
+    const configRes = await fetch("/api/agent", { cache: "no-store" });
+    if (!configRes.ok) throw new Error("Failed to load agent config");
+    const agentConfig = await configRes.json();
+
+    // Build runtime tools from config
+    const functionTools = (agentConfig.tools || []).map((t: { name: string; description?: string; url: string; params?: Array<{ name: string; required?: boolean }>; }) => {
+      const shape: Record<string, zod.ZodTypeAny> = {};
+      for (const p of t.params || []) {
+        shape[p.name] = p.required ? zod.string() : zod.string().optional();
+      }
+      return tool({
+        name: t.name,
+        description: t.description,
+        parameters: zod.object(shape),
+        execute: async (args: Record<string, unknown>) => {
+          const url = new URL(t.url);
+          for (const [paramName, paramValue] of Object.entries(args)) {
+            if (paramValue !== undefined && paramValue !== null) {
+              url.searchParams.set(paramName, String(paramValue));
+            }
+          }
+          const res = await fetch(url.toString());
+          const data = await res.json().catch(() => ({}));
+          return { ok: res.ok, status: res.status, data } as unknown as string;
+        },
+      });
+    });
+
     const agent = new RealtimeAgent({
       name: "Voice Assistant",
-      instructions: "You are a helpful assistant.",
+      instructions: agentConfig.systemPrompt || "You are a helpful assistant.",
+      tools: functionTools,
     });
     const session = new RealtimeSession(agent, { model: "gpt-realtime" });
     sessionRef.current = session;
     await session.connect({
       apiKey: async () => {
         const base = process.env.NEXT_PUBLIC_AGENT_API_URL || "";
-        const url = base ? `${base.replace(/\/$/, '')}x/realtime/token` : "/api/voice/token";
+        const url = base ? `${base.replace(/\/$/, '')}/realtime/token` : "/api/voice/token";
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to get token");
         const data = await res.json().catch(() => null);
         return (data?.token as string) || (await res.text());
       },
     });
+    // Kick off an initial response so the agent greets immediately on connect
+    try {
+      session.transport.sendEvent({ type: "response.create" });
+    } catch {
+      // ignore
+    }
     setConnected(true);
     setStatus("Connected");
   }

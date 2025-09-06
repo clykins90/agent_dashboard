@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const agentApiBaseUrl = process.env.NEXT_PUBLIC_AGENT_API_URL || process.env.AGENT_API_URL;
     if (!agentApiBaseUrl) {
