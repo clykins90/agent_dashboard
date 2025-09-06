@@ -17,7 +17,7 @@ export const PORT: number = Number(process.env.PORT || 8787);
 export const OPENAI_API_KEY: string | null = process.env.OPENAI_API_KEY || null;
 export const REALTIME_MODEL: string = process.env.REALTIME_MODEL || 'gpt-realtime';
 export const DEFAULT_VOICE: string | undefined = process.env.DEFAULT_VOICE || undefined;
-export const PUBLIC_WS_URL: string = process.env.PUBLIC_WS_URL || (process.env as any).AGENT_API_PUBLIC_URL || '';
+export const PUBLIC_WS_URL: string = process.env.PUBLIC_WS_URL || process.env['AGENT_API_PUBLIC_URL'] || '';
 export const AUTH_TOKEN: string | null = process.env.AUTH_TOKEN || null;
 
 // Per-IP rate limiting for /realtime/token

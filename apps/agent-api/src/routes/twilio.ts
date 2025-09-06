@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import websocket from '@fastify/websocket';
-import { OpenAIRealtimeWebSocket } from '@openai/agents-realtime';
+import { OpenAIRealtimeWebSocket, TransportToolCallEvent } from '@openai/agents-realtime';
 import { OPENAI_API_KEY, REALTIME_MODEL, DEFAULT_VOICE, PUBLIC_WS_URL } from '../config';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -8,6 +8,19 @@ import path from 'path';
 type ToolParam = { name: string; required: boolean };
 type ToolConfig = { name: string; description: string; url: string; params: ToolParam[] };
 type AgentConfig = { systemPrompt: string; model: string; tools: ToolConfig[] };
+
+type RealtimeFunctionToolDefinition = {
+  type: 'function';
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, { type: 'string' }>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+  strict: boolean;
+};
 
 async function loadAgentConfig(app: FastifyInstance): Promise<AgentConfig | null> {
   try {
@@ -22,10 +35,10 @@ async function loadAgentConfig(app: FastifyInstance): Promise<AgentConfig | null
   }
 }
 
-function toRealtimeFunctionTools(config: AgentConfig | null): any[] | undefined {
+function toRealtimeFunctionTools(config: AgentConfig | null): RealtimeFunctionToolDefinition[] | undefined {
   if (!config || !Array.isArray(config.tools) || config.tools.length === 0) return undefined;
   return config.tools.map((t) => {
-    const properties: Record<string, any> = {};
+    const properties: Record<string, { type: 'string' }> = {};
     const required: string[] = [];
     for (const p of t.params || []) {
       properties[p.name] = { type: 'string' };
@@ -35,13 +48,15 @@ function toRealtimeFunctionTools(config: AgentConfig | null): any[] | undefined 
       type: 'function',
       name: t.name,
       description: t.description,
-      parameters: { type: 'object', properties, required },
+      parameters: { type: 'object', properties, required, additionalProperties: false },
+      strict: true,
     };
   });
 }
 
 export async function registerTwilioRoutes(app: FastifyInstance) {
-  if (!(app as any).websocketServer) {
+  const appWithWs = app as FastifyInstance & { websocketServer?: unknown };
+  if (!appWithWs.websocketServer) {
     await app.register(websocket);
   }
 
@@ -117,13 +132,13 @@ export async function registerTwilioRoutes(app: FastifyInstance) {
     }
 
     // Basic function tool execution: proxy function call outputs by fetching configured URL
-    transport.on('function_call', async (toolCall) => {
+    transport.on('function_call', async (toolCall: TransportToolCallEvent) => {
       try {
         const name = toolCall.name;
         const args = JSON.parse(toolCall.arguments || '{}') as Record<string, unknown>;
         const t = agentConfig?.tools.find((x) => x.name === name);
         if (!t) {
-          transport.sendFunctionCallOutput(toolCall as any, `Tool not found: ${name}`, true);
+          transport.sendFunctionCallOutput(toolCall, `Tool not found: ${name}`, true);
           return;
         }
         const url = new URL(t.url);
@@ -135,10 +150,10 @@ export async function registerTwilioRoutes(app: FastifyInstance) {
         const res = await fetch(url.toString());
         const data = await res.json().catch(() => ({}));
         const body = JSON.stringify({ ok: res.ok, status: res.status, data });
-        transport.sendFunctionCallOutput(toolCall as any, body, true);
+        transport.sendFunctionCallOutput(toolCall, body, true);
       } catch (err) {
         app.log.warn({ err }, 'Error executing function tool');
-        try { transport.sendFunctionCallOutput(toolCall as any, 'Tool execution error', true); } catch {}
+        try { transport.sendFunctionCallOutput(toolCall, 'Tool execution error', true); } catch {}
       }
     });
 
@@ -151,17 +166,25 @@ export async function registerTwilioRoutes(app: FastifyInstance) {
     });
 
     socket.on('message', (message: Buffer) => {
-      let obj: any = null;
+      let parsed: unknown;
       try {
-        obj = JSON.parse(message.toString());
+        parsed = JSON.parse(message.toString());
       } catch {
         app.log.debug('Non-JSON message from Twilio');
         return;
       }
 
-      const event = obj?.event;
+      if (typeof parsed !== 'object' || parsed === null) return;
+      const obj = parsed as Record<string, unknown>;
+      const eventVal = obj['event'];
+      const event = typeof eventVal === 'string' ? eventVal : undefined;
+
       if (event === 'start') {
-        streamSid = obj?.start?.streamSid || obj?.streamSid || null;
+        const startVal = obj['start'];
+        const start = (typeof startVal === 'object' && startVal !== null) ? (startVal as Record<string, unknown>) : undefined;
+        const startSid = start && typeof start['streamSid'] === 'string' ? (start['streamSid'] as string) : undefined;
+        const topSid = typeof obj['streamSid'] === 'string' ? (obj['streamSid'] as string) : undefined;
+        streamSid = startSid || topSid || null;
         app.log.info({ streamSid }, 'Twilio stream started');
         // Start initial greeting as soon as the stream starts
         try {
@@ -170,7 +193,10 @@ export async function registerTwilioRoutes(app: FastifyInstance) {
         return;
       }
       if (event === 'media') {
-        const payload = obj?.media?.payload as string | undefined;
+        const mediaVal = obj['media'];
+        const media = (typeof mediaVal === 'object' && mediaVal !== null) ? (mediaVal as Record<string, unknown>) : undefined;
+        const payloadVal = media ? media['payload'] : undefined;
+        const payload = typeof payloadVal === 'string' ? payloadVal : undefined;
         if (!payload) return;
         try {
           const buff = Buffer.from(payload, 'base64');
