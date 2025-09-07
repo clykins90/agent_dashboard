@@ -1,0 +1,50 @@
+{
+  "name": "agent-api",
+  "root": "apps/agent-api",
+  "sourceRoot": "apps/agent-api/src",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx watch src/server.ts",
+        "cwd": "apps/agent-api"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p tsconfig.json",
+        "cwd": "apps/agent-api"
+      },
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node dist/server.js",
+        "cwd": "apps/agent-api"
+      },
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "vite:typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/agent-api/tsconfig.json --noEmit"
+      }
+    },
+    "eslint:lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "apps/agent-api/src/**/*.{ts,tsx,js}"
+        ]
+      }
+    }
+  }
+}
+
+

@@ -1,0 +1,50 @@
+{
+  "name": "web",
+  "root": "apps/web",
+  "sourceRoot": "apps/web",
+  "targets": {
+    "next:dev": {
+      "executor": "@nx/next:server",
+      "options": {
+        "dev": true,
+        "buildTarget": "web:next:build",
+        "turbo": true
+      }
+    },
+    "next:build": {
+      "executor": "@nx/next:build",
+      "options": {
+        "outputPath": "apps/web/.next"
+      }
+    },
+    "next:start": {
+      "executor": "@nx/next:server",
+      "options": {
+        "dev": false,
+        "buildTarget": "web:next:build"
+      }
+    },
+    "vite:test": {
+      "executor": "@nx/vite:test",
+      "options": {
+        "config": "apps/web/vitest.config.ts"
+      }
+    },
+    "vite:typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/web/tsconfig.json --noEmit"
+      }
+    },
+    "eslint:lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "apps/web/**/*.{ts,tsx}"
+        ]
+      }
+    }
+  }
+}
+
+
